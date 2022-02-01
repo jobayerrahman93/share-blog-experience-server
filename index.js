@@ -19,7 +19,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    console.log("database connected");
+    // console.log("database connected");
     const database = client.db("blog-experience");
     const placeCollection = database.collection("place");
 
@@ -28,11 +28,30 @@ async function run() {
     app.get("/", async (req, res) => {
       // console.log("hitting blog");
 
-      const cursor = await placeCollection.find({});
+      let page = req.query.page;
+      let size = parseInt(req.query.size);
+      // console.log(req.query);
 
-      const result = await cursor.toArray();
+      const cursor = await placeCollection.find({});
+      const count = await cursor.count();
+
+      let blogs;
+      
+      if (page) {
+        
+       blogs = await cursor.skip(page*size).limit(size).toArray();
+      }
+      else{
+         blogs = await cursor.toArray();
+        
+      }
+
+
       //    console.log(result);
-      res.json(result);
+      res.send({
+        count,
+        blogs,
+      });
     });
 
     // get dynamic single data
@@ -51,16 +70,13 @@ async function run() {
 
     // post blog
 
-    app.post("/postBlog",async(req,res)=>{
-
-      postBlog= req.body;
+    app.post("/postBlog", async (req, res) => {
+      postBlog = req.body;
       // console.log("hitting post",postBlog);
 
-      const result  = await placeCollection.insertOne(postBlog);
+      const result = await placeCollection.insertOne(postBlog);
       res.json(result);
-    })
-
-
+    });
   } finally {
     // await client.close();
   }
